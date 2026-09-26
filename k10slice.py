@@ -5,6 +5,8 @@ k10slice - slice any STL for the EasyThreed K10, safely, with one command.
     python3 k10slice.py part.stl
     python3 k10slice.py a.stl b.stl --out ./gcode
     python3 k10slice.py part.stl --rotate-x 180        # force an orientation
+    python3 k10slice.py part.stl --speed 30 --infill 15  # change any setting
+    python3 k10slice.py --settings                     # list every setting and its default
     python3 k10slice.py --selftest                     # check your install
 
 It drives OrcaSlicer from the command line with a profile built from
@@ -23,8 +25,9 @@ WHAT IT DOES, per STL
   2. Checks it fits 100 x 100 x 100.
   3. Sizes the raft to the bed. The factory raft margin is 3 mm; a part too wide
      for that gets a narrower margin, and one too wide for any raft gets none.
-  4. Slices with OrcaSlicer: 0.2 mm layers, 40 mm/s, 215 C, 4.5 mm retraction,
-     line supports, raft - the factory profile.
+  4. Slices with OrcaSlicer using the factory-matched defaults (0.2 mm layers,
+     20 mm/s, 215 C, 4.5 mm retraction, line supports, raft). Every one of them
+     can be changed on the command line; see SETTINGS below or --settings.
   5. Audits the G-code, and deletes it if any check fails:
        - no bed-heating command (M140 / M141 / M190) anywhere
        - every move inside 0..100 on X, Y and Z, with NO tolerance
@@ -55,6 +58,71 @@ NOZZLE_RANGE = (180, 230)            # K10 manual, section 1.2
 PRIME_LINE_Y = 3.5                   # the start G-code primes along Y 2..3.5
 RAFT_MARGIN = 3.0                    # factory is 5 mm; 3 keeps a raft under wider parts
 MIN_CONTACT = 0.5                    # below this share of footprint, supports are required
+
+# --------------------------------------------------------------------------- settings
+#
+# Every setting a user may change, with its default, the range the K10 can take,
+# and the OrcaSlicer keys it writes. The defaults reproduce the Rocket_K10.gcode
+# sample EasyThreed ships on the printer's TF card: 20 mm/s for every extrusion,
+# Cura's width x height flow (Orca's rounded-line model extrudes ~11 % less, so
+# the flow ratio is 1.1), fan on from layer 2, 215 C, 4.5 mm retraction.
+#
+#   name: (default, (min, max), unit, profile, [keys], help)
+SPEED_KEYS = ["outer_wall_speed", "inner_wall_speed", "sparse_infill_speed", "internal_solid_infill_speed",
+              "top_surface_speed", "bridge_speed", "gap_infill_speed", "support_speed", "support_interface_speed"]
+SETTINGS = {
+    "speed":         (20, (5, 40), "mm/s", "process", SPEED_KEYS,
+                      "print speed for every extrusion; the firmware caps moves at 40"),
+    "first_speed":   (20, (5, 40), "mm/s", "process", ["initial_layer_speed", "initial_layer_infill_speed"],
+                      "first-layer speed"),
+    "layer":         (0.2, (0.05, 0.3), "mm", "process", ["layer_height"], "layer height"),
+    "first_layer":   (0.3, (0.1, 0.35), "mm", "process", ["initial_layer_print_height"], "first-layer height"),
+    "walls":         (2, (1, 6), "", "process", ["wall_loops"], "wall loops (0.4 mm each)"),
+    "top":           (3, (0, 10), "layers", "process", ["top_shell_layers"], "solid top layers"),
+    "bottom":        (3, (0, 10), "layers", "process", ["bottom_shell_layers"], "solid bottom layers"),
+    "infill":        (20, (0, 100), "%", "process", ["sparse_infill_density"], "infill density"),
+    "support_angle": (30, (0, 90), "deg", "process", ["support_threshold_angle"],
+                      "support overhangs shallower than this from horizontal"),
+    "raft_layers":   (4, (1, 8), "", "process", ["raft_layers"], "raft layers (when a raft is used)"),
+    "temp":          (215, NOZZLE_RANGE, "C", "filament", ["nozzle_temperature", "nozzle_temperature_initial_layer"],
+                      "nozzle temperature"),
+    "flow":          (1.1, (0.8, 1.3), "x", "filament", ["filament_flow_ratio"],
+                      "flow ratio; 1.1 matches the factory G-code's extrusion"),
+    "fan":           (100, (0, 100), "%", "filament", ["fan_min_speed", "fan_max_speed"],
+                      "part-cooling fan from layer 2"),
+    "retract":       (4.5, (0, 8), "mm", "machine", ["retraction_length"], "retraction length (Bowden)"),
+    "retract_speed": (40, (10, 60), "mm/s", "machine", ["retraction_speed", "deretraction_speed"],
+                      "retraction speed"),
+}
+ARRAY_PROFILES = ("filament", "machine")   # these OrcaSlicer profiles keep per-extruder lists
+
+
+def settings_value(name, value):
+    default, (lo, hi), unit, _, _, _ = SETTINGS[name]
+    if not lo <= value <= hi:
+        sys.exit(f"--{name.replace('_', '-')} {value:g} is outside {lo:g}..{hi:g} {unit}".rstrip())
+    return value
+
+
+def apply_settings(profiles, args):
+    """Write every setting (default or overridden) into the loaded profiles; return what was used."""
+    used = {}
+    for name, (default, _, unit, prof, keys, _) in SETTINGS.items():
+        value = settings_value(name, getattr(args, name))
+        text = f"{value:g}" if isinstance(default, float) else str(int(round(value)))
+        if name == "infill":
+            text += "%"
+        for k in keys:
+            profiles[prof][k] = [text] if prof in ARRAY_PROFILES else text
+        used[name] = (value, default, unit)
+    return used
+
+
+def print_settings():
+    print("Settings (defaults reproduce the factory Rocket_K10.gcode sample):\n")
+    for name, (default, (lo, hi), unit, _, _, text) in SETTINGS.items():
+        print(f"  --{name.replace('_', '-'):15} {default:>6g} {unit:7} range {lo:g}..{hi:g}   {text}")
+
 
 ORCA_CANDIDATES = [
     "/Applications/OrcaSlicer.app/Contents/MacOS/OrcaSlicer",
@@ -233,14 +301,20 @@ def slice_one(orca, stl, out_dir, args, used, tmp):
     if not args.no_raft and not raft:
         notes.append("too big for a raft on this bed - printing without one")
 
-    process = json.load(open(PROCESS))
-    process["raft_layers"] = "4" if raft else "0"
+    profiles = {"machine": json.load(open(MACHINE)), "process": json.load(open(PROCESS)),
+                "filament": json.load(open(FILAMENT))}
+    changed = apply_settings(profiles, args)
+    process = profiles["process"]
+    if not raft:
+        process["raft_layers"] = "0"
     process["raft_expansion"] = f"{margin:.2f}" if raft else "0"
     process["raft_first_layer_expansion"] = "0"
     if args.no_support:
         process["enable_support"] = "0"
-    proc_path = os.path.join(tmp, "process.json")
-    json.dump(process, open(proc_path, "w"), indent=2)
+    paths = {}
+    for kind, prof in profiles.items():
+        paths[kind] = os.path.join(tmp, f"{kind}.json")
+        json.dump(prof, open(paths[kind], "w"), indent=2)
 
     oriented = os.path.join(tmp, os.path.basename(stl))
     write_stl(oriented, t)
@@ -249,7 +323,7 @@ def slice_one(orca, stl, out_dir, args, used, tmp):
     os.makedirs(work)
     # Rotation is done above in Python. OrcaSlicer 2.4.2 CRASHES on --rotate-x
     # combined with --ensure-on-bed, so no rotation flag ever reaches it.
-    cmd = [orca, "--load-settings", f"{MACHINE};{proc_path}", "--load-filaments", FILAMENT,
+    cmd = [orca, "--load-settings", f"{paths['machine']};{paths['process']}", "--load-filaments", paths["filament"],
            "--slice", "0", "--outputdir", work, oriented]
     res = subprocess.run(cmd, capture_output=True, text=True)
     produced = [f for f in os.listdir(work) if f.endswith(".gcode")]
@@ -260,7 +334,8 @@ def slice_one(orca, stl, out_dir, args, used, tmp):
     target = os.path.join(out_dir, k10_name(stl, used))
     shutil.move(os.path.join(work, produced[0]), target)
     problems = audit(target, share < MIN_CONTACT)
-    info = dict(rot=(rx, ry), size=(w, d, h), contact=share, raft=margin if raft else 0.0, notes=notes)
+    info = dict(rot=(rx, ry), size=(w, d, h), contact=share, raft=margin if raft else 0.0, notes=notes,
+                changed={k: v for k, v in changed.items() if v[0] != v[1]})
     if problems:
         os.remove(target)
         return None, problems
@@ -293,7 +368,16 @@ def main():
     ap.add_argument("--no-support", action="store_true", help="skip supports (flat parts only)")
     ap.add_argument("--orca", default=None, help="path to the OrcaSlicer executable")
     ap.add_argument("--selftest", action="store_true", help="slice a 20 mm test cube")
+    ap.add_argument("--settings", action="store_true", help="list every setting with its default and range")
+    for name, (default, (lo, hi), unit, _, _, text) in SETTINGS.items():
+        ap.add_argument(f"--{name.replace('_', '-')}", dest=name, type=float, default=default,
+                        help=f"{text} (default {default:g}{' ' + unit if unit else ''}, {lo:g}..{hi:g})".replace("%", "%%"))
     args = ap.parse_args()
+    if args.settings:
+        print_settings()
+        return
+    for name in SETTINGS:
+        settings_value(name, getattr(args, name))
 
     orca = find_orca(args.orca)
     stls = list(args.stl)
@@ -331,6 +415,9 @@ def main():
         print(f"OK   {os.path.basename(path):24} {when:>12}  {grams:5.1f} g   "
               f"{w:.0f}x{d:.0f}x{h:.0f} mm, rotated X{rx:+.0f} Y{ry:+.0f}, "
               f"{info['contact']:.0%} on bed, {raft}")
+        if info["changed"]:
+            print("       settings: " + ", ".join(f"{k.replace('_', '-')} {v[0]:g}{v[2] if v[2] in ('%', 'C') else ''}"
+                                                   f" (default {v[1]:g})" for k, v in info["changed"].items()))
         for n in info["notes"]:
             print(f"       note: {n}")
 

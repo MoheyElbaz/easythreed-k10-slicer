@@ -64,6 +64,15 @@
         "10"
     ],
     "filament_flow_ratio": [
+        "1.1"
+    ],
+    "reduce_fan_stop_start_freq": [
         "1"
+    ],
+    "fan_cooling_layer_time": [
+        "100"
+    ],
+    "overhang_fan_speed": [
+        "100"
     ]
 }

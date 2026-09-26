@@ -66,11 +66,14 @@
     "z_hop": [
         "0"
     ],
-    "machine_start_gcode": "; EasyThreed K10 - NO HEATED BED, 100x100x100\nG90 ; absolute coordinates\nM83 ; relative extrusion\nM104 S[first_layer_temperature] ; start heating the nozzle\nG28 ; home all\nM109 S[first_layer_temperature] ; wait for the nozzle\nG92 E0\n; prime line along the FRONT edge: the factory raft reaches the left edge\nG1 X10 Y2 Z0.3 F1200\nG1 X90 Y2 E9 F600\nG1 X90 Y3.5 F1200\nG1 X10 Y3.5 E9 F600\nG92 E0\nG1 Z1.0 F600",
-    "machine_end_gcode": "; EasyThreed K10 end\nG1 E-1.2 F1500 ; retract\nG91 ; relative\nG1 Z5 F600 ; lift\nG90 ; absolute\nM104 S0 ; nozzle off\nM107 ; fan off\nG1 X0 Y95 F2000 ; present the part\nM84 ; motors off",
-    "layer_change_gcode": "G92 E0",
-    "before_layer_change_gcode": ";BEFORE_LAYER_CHANGE\\nG92 E0",
+    "machine_start_gcode": "; EasyThreed K10 - NO HEATED BED, 100x100x100\nG90 ; absolute coordinates\nM82 ; absolute extrusion, as the factory G-code\nM104 S[first_layer_temperature] ; start heating the nozzle\nG28 ; home all\nM109 S[first_layer_temperature] ; wait for the nozzle\nG92 E0\n; prime line along the FRONT edge: the factory raft reaches the left edge\nG1 X10 Y2 Z0.3 F1200\nG1 X90 Y2 E9 F600\nG1 X90 Y3.5 F1200\nG1 X10 Y3.5 E18 F600\nG92 E0\nG1 Z1.0 F600",
+    "machine_end_gcode": "; EasyThreed K10 end\nG91 ; relative\nG1 E-1 F300 ; retract, as the factory end G-code\nG1 Z5 F600 ; lift\nG90 ; absolute\nM104 S0 ; nozzle off\nM107 ; fan off\nG1 X0 Y95 F2000 ; present the part\nM84 ; motors off",
+    "layer_change_gcode": "",
+    "before_layer_change_gcode": ";BEFORE_LAYER_CHANGE",
     "retraction_minimum_travel": [
         "1.5"
-    ]
+    ],
+    "use_relative_e_distances": "0",
+    "emit_machine_limits_to_gcode": "0",
+    "disable_m73": "1"
 }
