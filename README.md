@@ -82,6 +82,7 @@ outside what the K10 can take are refused.
 | `--top` / `--bottom` | 3 | 0–10 | solid layers |
 | `--infill` | 20 % | 0–100 | grid infill |
 | `--support-angle` | 30° | 0–90 | support overhangs shallower than this |
+| `--support-gap` | 0.25 mm | 0.1–0.4 | air gap between support and part |
 | `--raft-layers` | 4 | 1–8 | raft thickness, when a raft is used |
 | `--temp` | 215 °C | 180–230 | nozzle |
 | `--flow` | 1.1 | 0.8–1.3 | flow ratio (see below) |
@@ -90,7 +91,12 @@ outside what the K10 can take are refused.
 | `--retract-speed` | 40 mm/s | 10–60 | retraction speed |
 
 Fixed by the machine, not options: no heated bed, travel 40 mm/s (the firmware
-cap), no z-hop, line supports with a 0.15 mm gap, a 0.22 mm raft air gap.
+cap), no z-hop, a 0.22 mm raft air gap.
+
+**Supports are set to snap off.** A 0.15 mm gap with three dense interface layers
+and the 1.1 flow welds PLA supports to a curved surface. The defaults leave one
+full layer of air (0.25 mm, rounded to the layer), two interface layers at 0.8 mm
+spacing, 0.9 flow on support and interface, and 0.8 mm side clearance.
 
 **Why 20 mm/s and not the manual's 40.** 40 mm/s is the firmware's ceiling. The
 factory sample prints every wall and support at 20 mm/s, which gives cleaner walls,

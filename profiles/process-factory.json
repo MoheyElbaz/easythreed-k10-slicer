@@ -46,9 +46,9 @@
     "sparse_infill_pattern": "grid",
     "support_base_pattern": "rectilinear",
     "support_base_pattern_spacing": "2.67",
-    "support_top_z_distance": "0.15",
-    "support_bottom_z_distance": "0.15",
-    "support_object_xy_distance": "0.7",
+    "support_top_z_distance": "0.25",
+    "support_bottom_z_distance": "0.25",
+    "support_object_xy_distance": "0.8",
     "raft_layers": "4",
     "raft_contact_distance": "0.22",
     "raft_expansion": "3",
@@ -61,5 +61,10 @@
     "top_surface_acceleration": "0",
     "sparse_infill_acceleration": "0",
     "internal_solid_infill_acceleration": "0",
-    "bridge_acceleration": "0"
+    "bridge_acceleration": "0",
+    "support_interface_top_layers": "2",
+    "support_interface_spacing": "0.8",
+    "support_interface_flow_ratio": "0.9",
+    "support_flow_ratio": "0.9",
+    "independent_support_layer_height": "0"
 }

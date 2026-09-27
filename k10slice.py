@@ -83,6 +83,8 @@ SETTINGS = {
     "infill":        (20, (0, 100), "%", "process", ["sparse_infill_density"], "infill density"),
     "support_angle": (30, (0, 90), "deg", "process", ["support_threshold_angle"],
                       "support overhangs shallower than this from horizontal"),
+    "support_gap":   (0.25, (0.1, 0.4), "mm", "process", ["support_top_z_distance", "support_bottom_z_distance"],
+                      "air gap between support and part; smaller = smoother underside, harder to remove"),
     "raft_layers":   (4, (1, 8), "", "process", ["raft_layers"], "raft layers (when a raft is used)"),
     "temp":          (215, NOZZLE_RANGE, "C", "filament", ["nozzle_temperature", "nozzle_temperature_initial_layer"],
                       "nozzle temperature"),
