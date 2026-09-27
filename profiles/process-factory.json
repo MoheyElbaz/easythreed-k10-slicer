@@ -65,6 +65,6 @@
     "support_interface_top_layers": "2",
     "support_interface_spacing": "0.8",
     "support_interface_flow_ratio": "0.9",
-    "support_flow_ratio": "0.9",
+    "support_flow_ratio": "1",
     "independent_support_layer_height": "0"
 }

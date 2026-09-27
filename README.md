@@ -96,7 +96,7 @@ cap), no z-hop, a 0.22 mm raft air gap.
 **Supports are set to snap off.** A 0.15 mm gap with three dense interface layers
 and the 1.1 flow welds PLA supports to a curved surface. The defaults leave one
 full layer of air (0.25 mm, rounded to the layer), two interface layers at 0.8 mm
-spacing, 0.9 flow on support and interface, and 0.8 mm side clearance.
+spacing, 0.9 flow on the support interface (the raft is printed as support, so the support body keeps full flow for first-layer grip), and 0.8 mm side clearance.
 
 **Why 20 mm/s and not the manual's 40.** 40 mm/s is the firmware's ceiling. The
 factory sample prints every wall and support at 20 mm/s, which gives cleaner walls,
